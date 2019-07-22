@@ -1,1 +1,44 @@
 
+body {
+   background: gray;
+  text-align: center;
+}
+
+.hidden {
+  display: none;
+}
+
+.states {
+  fill: none;
+  stroke: red; /* states line */
+}
+
+.counties {
+  fill: none;
+  stroke: black; /* counties line */
+}
+.county:hover
+{
+  fill: yellow;
+}
+
+#tooltip {
+  position: absolute;
+  font-size: 14px;
+  width: auto;
+  height: auto;
+  padding: 0px 10px 0px 10px;
+  opacity: 0.8;
+  background-color: beige;
+  border-radius: 10px;
+  box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+  pointer-events: none; 
+}
+
+#legend {
+  font-size: 12px;
+}
+
+#source {
+  text-align: right;
+}
