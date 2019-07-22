@@ -2,3 +2,123 @@
 https://www.youtube.com/watch?time_continue=706&v=suNs5p0IxWk
 
 */
+// Add datasets into varialbles
+const educationDataUrl = "https://raw.githubusercontent.com/no-stack-dub-sack/testable-projects-fcc/master/src/data/choropleth_map/for_user_education.json";
+const countyDataUrl = "https://raw.githubusercontent.com/no-stack-dub-sack/testable-projects-fcc/master/src/data/choropleth_map/counties.json";
+
+// asynchronously load datasets variables
+d3.queue()
+  .defer(d3.json, educationDataUrl)  // education
+  .defer(d3.json, countyDataUrl)     // county
+  .await(callback);
+
+// callback function 
+function callback(error, education, county) {
+  if (error) throw error;
+
+// Provide dimention
+const width = 960;
+const height = 650;
+
+// Add legend scale
+const scaleMin = d3.min(education, (d) => d.bachelorsOrHigher);
+const scaleMax = d3.max(education, (d) => d.bachelorsOrHigher);
+const scaleMinMax = scaleMax - scaleMin;
+  
+// color scale with 9 thresholds
+const color = d3.scaleThreshold()
+    .domain(d3.range(scaleMin, scaleMax, scaleMinMax/8))
+    .range(d3.schemeBuPu[9]);
+  
+// Add USA map
+  const svg = d3.select("#choroplethMap")
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height);
+ 
+// Add title
+  d3.select("#title")
+  .append("header")
+  .html("<h1>Educational Attainment in the United States</h1>");
+  
+// Add description
+  d3.select("#description")
+  .append("text")
+  .html("<h2>Percentage of adults age 25 and older with a bachelor's degree or higher (2010 - 2014)</h2>")
+  
+  // Add source
+  d3.select("#source")
+  .append("text")
+  .html("<span>Source: <a href='https://www.ers.usda.gov/data-products/county-level-data-sets/download-data.aspx'>USDA Economic Research Service</a></span>");
+
+  /* Add d3 SVG Legend: 
+  A library to make legends in svg-land easy as pie.
+  https://d3-legend.susielu.com/#color-threshold
+  */
+  const legend = d3.legendColor()
+  .labelFormat(d3.format(".2f"))
+  .labels(d3.legendHelpers.thresholdLabels)
+  .labelAlign("middle")
+  .orient("horizontal")
+  .shapeWidth(85)
+  .shapePadding(5)
+  .scale(color);
+  
+  svg.append("g")
+  .attr("id", "legend")
+  .attr("class", "legendQuant")
+  .attr("transform", "translate(25,615)")
+  .call(legend);
+ 
+  
+// draw counties filled by education level
+  svg.append("g")
+    .attr("class", "counties")
+    .selectAll("path")
+    .data(topojson.feature(county, county.objects.counties).features)
+    .enter().append("path")
+    .attr("d", d3.geoPath())
+    .attr("class", "county")
+    .attr("data-fips", (d) => d.id)
+    .attr("data-education", (d) => {
+   // get corresponding education data for county
+      let result = education.filter((itm) => itm.fips == d.id );
+      return result[0] ? result[0]['bachelorsOrHigher'] : "0";
+    })
+    .attr("fill", (d) => { 
+      // get corresponding education data for county
+      let result = education.filter((itm) => itm.fips == d.id );
+      return result[0] ? color(result[0]['bachelorsOrHigher']) : color(0);
+    })
+  
+ // Tooltip event
+    .on("mouseover", function(d) {      
+      // get corresponding education data for county
+      let result = education.filter((itm) => itm.fips == d.id);
+        
+// Add location to tooltip
+    d3.select("#tooltip")
+        .style("left", (d3.event.pageX + 10) + "px")
+        .style("top", (d3.event.pageY - 28) + "px")
+        .select("#data-location")
+        .text(result[0]['area_name'] + ", " + result[0]['state']);
+    
+    // Add education to tooltip
+      d3.select("#tooltip")
+        .select("#data-education")
+        .text(result[0]['bachelorsOrHigher'] + "%");
+      d3.select("#tooltip").classed("hidden", false);
+    })
+  
+  // Tooltip event
+    .on("mouseout", () => {
+      d3.select("#tooltip").classed("hidden", true);
+  });
+  
+  // draw state lines
+  svg.append("path")
+    .datum(topojson.mesh(county, county.objects.states, function(a, b) { return a !== b; }))
+    .attr("class", "states")
+    .attr("d", d3.geoPath());
+  
+}
